@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-service
+  namespace: default
+  labels:
+      app: catalog-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog-service
+  template:
+    metadata:
+      labels:
+        app: catalog-service
+    spec:
+      containers:
+      - name: catalog-service
+        image: 212760202707.dkr.ecr.us-east-1.amazonaws.com/catalog-service:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /catalog-service/monitoring/health-check/
+            port: 8000
+        readinessProbe:
+          httpGet:
+            path: /catalog-service/monitoring/health-check/
+            port: 8000
+        envFrom:
+        - secretRef:
+            name: catalog-service-secret
+        - secretRef:
+            name: shared-secret
+        command:  ["python", "src/manage.py", "runserver", "0.0.0.0:8000"]
+        ports:
+          - name: tcp
+            containerPort: 8000
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-service
+  namespace: default
+  labels:
+    app: catalog-service
+spec:
+  type: ClusterIP
+  selector:
+    app: catalog-service
+  ports:
+    - port: 8000
+      targetPort: 8000
